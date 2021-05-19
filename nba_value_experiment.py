@@ -4,15 +4,41 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-print("\nTop 10 Rows\n")
+## Returns the label from a array of length two.
+def sortByLabel(entry):
+    return entry[1]
+
+## Builds a list of two value arrays that then are sorted and displayed by their grouping.
+def buildAndDisplayGroupings(model, full_set, features_set):
+    general_list = []
+    for index, row in full_set.iterrows():
+        name = row['Player']
+        column_row = features_set.loc[ full_set['Player'] == name,: ]
+
+        row_list = column_row.values.tolist()
+        row_label = model.predict(row_list)
+
+        general_list.append([name, row_label[0]])
+
+    general_list.sort(key = sortByLabel)
+    prior_label = -1
+    for index in range(len(general_list)):
+        if prior_label != general_list[index][1]:
+            print("\nGroup -- {}\n".format(general_list[index][1]))
+        print(general_list[index][0])
+        prior_label = general_list[index][1]
 
 per_game_set = pd.read_csv("archive/nba_2020_per_game.csv")
 per_game_set.drop_duplicates(subset = "Player", keep = False, inplace = True)
 per_game_set.dropna(inplace = True)
 
+## Printing Mean Values ##
+
 print("\nMean Values\n")
 
 print(per_game_set.mean())
+
+## Model for General Classification
 
 general_kmeans_model = KMeans(n_clusters = 8, random_state = 1)
 good_columns = per_game_set._get_numeric_data().dropna()
@@ -20,29 +46,9 @@ good_columns.drop(columns = ["Age", "G", "GS", "G", "GS", "MP", "FT%"])
 general_kmeans_model.fit(good_columns)
 labels = general_kmeans_model.labels_
 
-LeBron = good_columns.loc[ per_game_set['Player'] == 'LeBron James',: ]
-Davis = good_columns.loc[ per_game_set['Player'] == 'Anthony Davis',: ]
-
-LeBron_list = LeBron.values.tolist()
-LeBron_label = general_kmeans_model.predict(LeBron_list)
-
-Davis_list = Davis.values.tolist()
-Davis_label = general_kmeans_model.predict(Davis_list)
-
-print("Lebron Grouping: {}".format(LeBron_label))
-print("Davis Grouping: {}".format(Davis_label))
-
 print("\nTop Tier of Players in NBA\n")
 
-for index, row in per_game_set.iterrows():
-    name = row['Player']
-    column_row = good_columns.loc[ per_game_set['Player'] == name,: ]
-
-    row_list = column_row.values.tolist()
-    row_label = general_kmeans_model.predict(row_list)
-
-    if row_label[0] == 6:
-        print("{}".format(name))
+buildAndDisplayGroupings(general_kmeans_model, per_game_set, good_columns)
 
 ## Model for Shooter Classification ##
 
@@ -57,15 +63,6 @@ shooting_good_columns = summative_stat_set[['3P%', 'eFG%', '3PA', 'TS%', '3PAr']
 shooting_kmeans_model.fit(shooting_good_columns)
 labels = shooting_kmeans_model.labels_
 
-print("\nTop Tier of Shooters in NBA\n")
+print("\nTop Tier of Shooters in NBA")
 
-for index, row in summative_stat_set.iterrows():
-    name = row['Player']
-    column_row = shooting_good_columns.loc[ summative_stat_set['Player'] == name,: ]
-
-    row_list = column_row.values.tolist()
-    row_label = shooting_kmeans_model.predict(row_list)
-
-    if row_label[0] == 2:
-        print("{}".format(name))
-
+buildAndDisplayGroupings(shooting_kmeans_model, summative_stat_set, shooting_good_columns)
